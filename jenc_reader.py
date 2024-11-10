@@ -37,17 +37,21 @@ ch.setFormatter(formatter)
 log.addHandler(ch)
 
 # FIXME - DeprecationWarning: 'locale.getdefaultlocale' is deprecated and slated for removal in Python 3.15. Use setlocale(), getencoding() and getlocale() instead.
-log.debug('encodings %r', (sys.getdefaultencoding(), sys.getfilesystemencoding(), locale.getdefaultlocale()))
+#log.debug('encodings %r', (sys.getdefaultencoding(), sys.getfilesystemencoding(), locale.getdefaultlocale()))
 
 
+"""
+    set JENC_FILENAME=Test3.md.jenc
+    set PASSWORD=geheim
+"""
 filename = os.environ['JENC_FILENAME']
 password = os.environ['PASSWORD']
 file_object = open(filename, 'rb')
 
 """
      * 4 bytes - define the version.
-     * salt bytes - bytes to salt the password. The length depends on version.
      * nonce bytes - bytes as nonce for cipher depends. The length  on version.
+     * salt bytes - bytes to salt the password. The length depends on version.
      * content bytes - the encrypted content-bytes.
 
 V001("PBKDF2WithHmacSHA512", 10000, 256, "AES", 64, "AES/GCM/NoPadding", 32),
@@ -71,17 +75,48 @@ jenc_version_details = {
         'keyIterationCount': 10000,  # this is probably too small/few in 2024
         'keyLength': 256,
         'keyAlgorithm': 'AES',
-        'keySaltLength': 64,
+        'keySaltLength': 64,  # in bytes
         'cipher': 'AES/GCM/NoPadding',
-        'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length
+        'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length  # in bytes
     },
 }
 this_file_meta = jenc_version_details[jenc_version]
-salt_bytes = file_object.read(this_file_meta['keySaltLength'])  # TODO review bit count versus byte count
 nonce_bytes = file_object.read(this_file_meta['nonceLenth'])  # TODO review bit count versus byte count
+salt_bytes = file_object.read(this_file_meta['keySaltLength'] )  # appears to be correct byte count.. but wrong bytes
 content_bytes = file_object.read()  # until EOF
 
 
+log.debug('%d nonce_bytes %r', len(nonce_bytes), nonce_bytes)
+log.debug('%d nonce_bytes hex %r', len(nonce_bytes), nonce_bytes.hex())
+
+log.debug('%d salt_bytes %r', len(salt_bytes), salt_bytes)
+log.debug('%d salt_bytes hex %r', len(salt_bytes), salt_bytes.hex())
+
+#  64 salt_bytes hex '05fa11953346421ea3698beca3f2142e53f538743cc522ea5f3a68f41e2a1a8e6c373d55f41fcf9915846707c72d2610fcfe8690cbe28dbfa1716023f851f6dd'
+"""
+java debug
+
+salt 128 chracters in hex, so 64 bytes
+nonce 64 chracters in hex, so 32 bytes
+
+-----------------------------------
+
+contents should be from Test3.md.jenc
+clach04DEBUG decryptStaticByte() jenc hex:
+                56303031
+nonce           05FA11953346421EA3698BECA3F2142E53F538743CC522EA5F3A68F41E2A1A8E
+salt            6C373D55F41FCF9915846707C72D2610FCFE8690CBE28DBFA1716023F851F6DD62CF7D4313130FB04F69F18BD9AD5894B15A1E1F496FC908CE0BE4263D94A04D
+encoded bytes   9EF1DB50D146F805380156A03B24E42DFDD331F843BF1ED25182A80A39E2C53053402A0F2CDC29D918479DA99276D0ACD4DA6311C050E9603EAE14788D572DE6BEB0994771D9C45E5816C43D4D8BC688D09D5426F1E82960303E1E91072B6667BBB4A3516D3386A5DCC4D4DD29B8747D43BD6659F3BD729B7E9DE112CAFA4A6C6627C96279B8706D48EAEC5B3D58ABFB635ACC4878
+
+clach04DEBUG decryptStaticByte() jenc hex: 5630303105FA11953346421EA3698BECA3F2142E53F538743CC522EA5F3A68F41E2A1A8E6C373D55F41FCF9915846707C72D2610FCFE8690CBE28DBFA1716023F851F6DD62CF7D4313130FB04F69F18BD9AD5894B15A1E1F496FC908CE0BE4263D94A04D9EF1DB50D146F805380156A03B24E42DFDD331F843BF1ED25182A80A39E2C53053402A0F2CDC29D918479DA99276D0ACD4DA6311C050E9603EAE14788D572DE6BEB0994771D9C45E5816C43D4D8BC688D09D5426F1E82960303E1E91072B6667BBB4A3516D3386A5DCC4D4DD29B8747D43BD6659F3BD729B7E9DE112CAFA4A6C6627C96279B8706D48EAEC5B3D58ABFB635ACC4878
+clach04DEBUG decryptBytes() salt hex: 6C373D55F41FCF9915846707C72D2610FCFE8690CBE28DBFA1716023F851F6DD62CF7D4313130FB04F69F18BD9AD5894B15A1E1F496FC908CE0BE4263D94A04D
+clach04DEBUG decryptBytes() nonce hex: 05FA11953346421EA3698BECA3F2142E53F538743CC522EA5F3A68F41E2A1A8E
+clach04DEBUG decryptBytes() encodedBytes hex: 9EF1DB50D146F805380156A03B24E42DFDD331F843BF1ED25182A80A39E2C53053402A0F2CDC29D918479DA99276D0ACD4DA6311C050E9603EAE14788D572DE6BEB0994771D9C45E5816C43D4D8BC688D09D5426F1E82960303E1E91072B6667BBB4A3516D3386A5DCC4D4DD29B8747D43BD6659F3BD729B7E9DE112CAFA4A6C6627C96279B8706D48EAEC5B3D58ABFB635ACC4878
+clach04DEBUG decryptBytes() END --------
+
+-----------------------------------
+
+"""
 
 
 # FIXME assuming V001
