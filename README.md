@@ -20,6 +20,8 @@ File format:
   * salt bytes - bytes to salt the password. The length depends on the version.
   * content bytes - the encrypted content-bytes.
 
+From the original Java code for jpencconverter it appears that strings are converted to/from UTF-8 (i.e. passwords and plaintext).
+
 ### jenc file format - V001
 
 From Python code:
