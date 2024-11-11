@@ -245,7 +245,6 @@ def decrypt_file_handle(file_object, password):
     nonce_bytes = file_object.read(this_file_meta['nonceLenth'])
     salt_bytes = file_object.read(this_file_meta['keySaltLength'])
     content_bytes = file_object.read()  # until EOF
-    auth_tag_length = 16  # i.e. 16 * 8 == 128-bits
     auth_tag = content_bytes[-auth_tag_length:]
     content_bytes = content_bytes[:-auth_tag_length]  # FIXME inefficient
 
