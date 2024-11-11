@@ -13,6 +13,7 @@ from Crypto.Cipher import AES
 
 from Cryptodome.Random import get_random_bytes  # FIXME
 
+from ._version import __version__, __version_info__
 
 class JencException(Exception):
     '''Base jenc exception'''
