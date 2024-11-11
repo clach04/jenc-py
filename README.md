@@ -1,14 +1,25 @@
 # jenc-py
 
-  * Working - jenc/Markor decrypt/encrypt library
-      * API Work-In-Progress, needs a buffer API
-  * Not yet working - tool
+jenc/Markor decrypt/encrypt library
+
+https://github.com/clach04/jenc-py
+
+**IMPORTANT** before using the optionally encryption features,
+ensure that it is legal in your country to use the specific encryption ciphers.
+Some countries have also have restrictions on import, export, and usage see http://www.cryptolaw.org/cls-sum.htm
 
 The aim is to have a pure python (with crypto dependencies) [jenc](https://github.com/opensource21/jpencconverter) (as used by [Markor](https://github.com/gsantner/markor)) decrypt/encrypt library.
 
+  * [Getting Started](#getting-started)
+    + [Regular install](#regular-install)
+    + [Without a source code checkout](#without-a-source-code-checkout)
+    + [From a source code checkout](#from-a-source-code-checkout)
+  * [Examples](#examples)
+    + [Example Encrypt / Decrypt in memory](#example-encrypt---decrypt-in-memory)
+  * [jenc file format](#jenc-file-format)
+    + [jenc file format - V001](#jenc-file-format---v001)
 
-Test jenc file https://github.com/opensource21/jpencconverter/blob/master/src/test/encrypted/Test3.md.jenc
-Test password `geheim` from https://github.com/opensource21/jpencconverter/blob/master/src/test/resources/application.properties
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 
 ## Getting Started
@@ -33,6 +44,9 @@ Picking up the latest version
 ## Examples
 
 ### Example Encrypt / Decrypt in memory
+
+Test jenc file https://github.com/opensource21/jpencconverter/blob/master/src/test/encrypted/Test3.md.jenc
+Test password `geheim` from https://github.com/opensource21/jpencconverter/blob/master/src/test/resources/application.properties
 
     import jenc
 
