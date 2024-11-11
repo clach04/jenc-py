@@ -10,6 +10,37 @@ The aim is to have a pure python (with crypto dependencies) [jenc](https://githu
 Test jenc file https://github.com/opensource21/jpencconverter/blob/master/src/test/encrypted/Test3.md.jenc
 Test password `geheim` from https://github.com/opensource21/jpencconverter/blob/master/src/test/resources/application.properties
 
+
+## Getting Started
+
+### Regular install
+
+    pip install jenc
+
+### Without a source code checkout
+
+Picking up the latest version
+
+    pip uninstall jenc; python -m pip install --upgrade git+https://github.com/clach04/jenc.git
+
+### From a source code checkout
+
+    # pip uninstall jenc
+    # python -m pip install -r requirements.txt
+    # TODO requirements_optional.txt
+    python -m pip install -e .
+
+## Examples
+
+### Example Encrypt / Decrypt in memory
+
+    import jenc
+
+    password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
+    encrypted_bytes = jenc.encrypt(password, b"Hello World")
+    plaintext_bytes = jenc.decrypt(password, encrypted_bytes)
+
+
 ## jenc file format
 
 There are multiple versions V001 (and the old U001).
