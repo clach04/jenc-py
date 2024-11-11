@@ -88,6 +88,47 @@ def jenc_version_check(jenc_version):
     if jenc_version not in jenc_version_details:
         raise UnsupportedMetaData('jenc version %r', jenc_version)
 
+def encrypt(password, plaintext_bytes, jenc_version='V001'):
+    """Takes in:
+        file-like object
+        password string (not bytes)
+        plaintext_bytes
+        version (string)
+    Returns encrypted bytes.
+
+    Sample code:
+
+        import jenc
+
+        password = 'geheim'
+        encrypted_bytes = jenc.encrypt_(password, b"Hello World")
+    """
+    jenc_version_check(jenc_version)
+    this_file_meta = jenc_version_details[jenc_version]
+    auth_tag_length = 16  # i.e. 16 * 8 == 128-bits
+    nonce_bytes = get_random_bytes(this_file_meta['nonceLenth'])
+    salt_bytes = get_random_bytes(this_file_meta['keySaltLength'])
+
+    log.debug('password %r', password)
+    if this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA512:
+        derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA512)
+    else:
+        raise UnsupportedMetaData('keyFactory %r' % this_file_meta['keyFactory'])
+    log.debug('derived_key %r', derived_key)
+    log.debug('derived_key len %r', len(derived_key))
+
+    if this_file_meta['cipher'] == JENC_AES_GCM_NoPadding:
+        cipher = AES.new(derived_key, AES.MODE_GCM, nonce=nonce_bytes)
+    else:
+        raise UnsupportedMetaData('cipher %r' % this_file_meta['cipher'])
+
+    log.debug('cipher %r', cipher)
+
+    crypted_bytes, auth_tag = cipher.encrypt_and_digest(plaintext_bytes)
+
+    return jenc_version.encode('us-ascii') + nonce_bytes + salt_bytes + crypted_bytes + auth_tag
+
+
 def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version='V001'):
     """Takes in:
         file-like object
