@@ -145,33 +145,8 @@ def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version='V0
         jenc.encrypt_file_handle(file_object, password, b"Hello World")
         file_object.close()
     """
-    jenc_version_check(jenc_version)
-    this_file_meta = jenc_version_details[jenc_version]
-    auth_tag_length = 16  # i.e. 16 * 8 == 128-bits
-    nonce_bytes = get_random_bytes(this_file_meta['nonceLenth'])
-    salt_bytes = get_random_bytes(this_file_meta['keySaltLength'])
-
-    log.debug('password %r', password)
-    if this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA512:
-        derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA512)
-    else:
-        raise UnsupportedMetaData('keyFactory %r' % this_file_meta['keyFactory'])
-    log.debug('derived_key %r', derived_key)
-    log.debug('derived_key len %r', len(derived_key))
-
-    if this_file_meta['cipher'] == JENC_AES_GCM_NoPadding:
-        cipher = AES.new(derived_key, AES.MODE_GCM, nonce=nonce_bytes)
-    else:
-        raise UnsupportedMetaData('cipher %r' % this_file_meta['cipher'])
-
-    log.debug('cipher %r', cipher)
-
-    crypted_bytes, auth_tag = cipher.encrypt_and_digest(plaintext_bytes)
-    file_object.write(jenc_version.encode('us-ascii'))
-    file_object.write(nonce_bytes)
-    file_object.write(salt_bytes)
-    file_object.write(crypted_bytes)
-    file_object.write(auth_tag)
+    encrypt_bytes = encrypt(password, plaintext_bytes, jenc_version=jenc_version)
+    file_object.write(encrypt_bytes)
 
 
 def decrypt_file_handle(file_object, password):
