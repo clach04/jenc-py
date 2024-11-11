@@ -81,6 +81,13 @@ jenc_version_details = {
     },
 }
 
+
+def jenc_version_check(jenc_version):
+    if isinstance(jenc_version, bytes):
+        jenc_version = jenc_version.decode('us-ascii')
+    if jenc_version not in ('V001'):
+        raise NotImplementedError('jenc version %r', jenc_version)
+
 def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version='V001'):
     """Takes in:
         file-like object
@@ -97,6 +104,7 @@ def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version='V0
         jenc.encrypt_file_handle(file_object, password, b"Hello World")
         file_object.close()
     """
+    jenc_version_check(jenc_version)
     this_file_meta = jenc_version_details[jenc_version]
     auth_tag_length = 16  # i.e. 16 * 8 == 128-bits
     nonce_bytes = get_random_bytes(this_file_meta['nonceLenth'])
@@ -150,8 +158,7 @@ def decrypt_file_handle(file_object, password):
     jenc_version = file_object.read(4)
 
     log.debug('jenc_version %r', jenc_version)
-    if jenc_version not in (b'V001'):  # FIXME refactor into function call
-        raise NotImplementedError('jenc version %r', jenc_version)
+    jenc_version_check(jenc_version)
     jenc_version = jenc_version.decode('us-ascii')
     this_file_meta = jenc_version_details[jenc_version]
     nonce_bytes = file_object.read(this_file_meta['nonceLenth'])
