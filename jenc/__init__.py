@@ -80,7 +80,7 @@ jenc_version_details = {
         'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length  # in bytes
     },
 }
-auth_tag_length = 16  # i.e. 16 * 8 == 128-bits
+AUTH_TAG_LENGTH = 16  # i.e. 16 * 8 == 128-bits
 
 
 def jenc_version_check(jenc_version):
@@ -122,12 +122,12 @@ def decrypt(password, encrypt_bytes):
     log.debug('%d salt_bytes %r', len(salt_bytes), salt_bytes)
     log.debug('%d salt_bytes hex %r', len(salt_bytes), salt_bytes.hex())
 
-    start_offset, end_offset = end_offset, -auth_tag_length
+    start_offset, end_offset = end_offset, -AUTH_TAG_LENGTH
     content_bytes = encrypt_bytes[start_offset:end_offset]
     log.debug('%d content_bytes %r', len(content_bytes), content_bytes)
     log.debug('%d content_bytes hex %r', len(content_bytes), content_bytes.hex())
 
-    auth_tag = encrypt_bytes[-auth_tag_length:]
+    auth_tag = encrypt_bytes[-AUTH_TAG_LENGTH:]
     log.debug('%d auth_tag %r', len(auth_tag), auth_tag)
     log.debug('%d auth_tag hex %r', len(auth_tag), auth_tag.hex())
 
@@ -245,8 +245,8 @@ def decrypt_file_handle(file_object, password):
     nonce_bytes = file_object.read(this_file_meta['nonceLenth'])
     salt_bytes = file_object.read(this_file_meta['keySaltLength'])
     content_bytes = file_object.read()  # until EOF
-    auth_tag = content_bytes[-auth_tag_length:]
-    content_bytes = content_bytes[:-auth_tag_length]  # FIXME inefficient
+    auth_tag = content_bytes[-AUTH_TAG_LENGTH:]
+    content_bytes = content_bytes[:-AUTH_TAG_LENGTH]  # FIXME inefficient
 
     log.debug('%d nonce_bytes %r', len(nonce_bytes), nonce_bytes)
     log.debug('%d nonce_bytes hex %r', len(nonce_bytes), nonce_bytes.hex())
