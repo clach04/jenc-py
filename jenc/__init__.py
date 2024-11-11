@@ -12,11 +12,19 @@ from Crypto.Hash import SHA512
 from Crypto.Cipher import AES
 
 
+class JencException(Exception):
+    '''Base jenc exception'''
+
+class UnsupportedMetaData(JencException):
+    '''version, meta data, etc. not supported exception'''
+
+
+
 # create log
 log = logging.getLogger("jenc")
 log.setLevel(logging.DEBUG)
 disable_logging = True
-#disable_logging = False
+#disable_logging = False  # DEBUG
 if disable_logging:
     log.setLevel(logging.NOTSET)  # only logs; WARNING, ERROR, CRITICAL
 
@@ -40,6 +48,8 @@ log.addHandler(ch)
 #log.debug('encodings %r', (sys.getdefaultencoding(), sys.getfilesystemencoding(), locale.getdefaultlocale()))
 
 
+JENC_PBKDF2WithHmacSHA512 = 'PBKDF2WithHmacSHA512'
+JENC_AES_GCM_NoPadding = 'AES/GCM/NoPadding'
 
 """
      * 4 bytes - define the version.
@@ -87,12 +97,12 @@ def decrypt_file_handle(file_object, password):
     jenc_version_details = {
         'V001': {
             # note CamelCase to match https://github.com/opensource21/jpencconverter/blob/f65b630ea190e597ff138d9c1ffa9409bb4d56f7/src/main/java/de/stanetz/jpencconverter/cryption/JavaPasswordbasedCryption.java#L229
-            'keyFactory': 'PBKDF2WithHmacSHA512',
+            'keyFactory': JENC_PBKDF2WithHmacSHA512,
             'keyIterationCount': 10000,  # this is probably too small/few in 2024
             'keyLength': 256,
             'keyAlgorithm': 'AES',
             'keySaltLength': 64,  # in bytes
-            'cipher': 'AES/GCM/NoPadding',
+            'cipher': JENC_AES_GCM_NoPadding,
             'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length  # in bytes
         },
     }
@@ -100,13 +110,18 @@ def decrypt_file_handle(file_object, password):
     nonce_bytes = file_object.read(this_file_meta['nonceLenth'])
     salt_bytes = file_object.read(this_file_meta['keySaltLength'])
     content_bytes = file_object.read()  # until EOF
-
+    auth_tag_length = 16  # i.e. 16 * 8 == 128-bits
+    auth_tag = content_bytes[-auth_tag_length:]
+    content_bytes = content_bytes[:-auth_tag_length]  # FIXME inefficient
 
     log.debug('%d nonce_bytes %r', len(nonce_bytes), nonce_bytes)
     log.debug('%d nonce_bytes hex %r', len(nonce_bytes), nonce_bytes.hex())
 
     log.debug('%d salt_bytes %r', len(salt_bytes), salt_bytes)
     log.debug('%d salt_bytes hex %r', len(salt_bytes), salt_bytes.hex())
+
+    log.debug('%d auth_tag %r', len(auth_tag), auth_tag)
+    log.debug('%d auth_tag hex %r', len(auth_tag), auth_tag.hex())
 
     #  64 salt_bytes hex '05fa11953346421ea3698beca3f2142e53f538743cc522ea5f3a68f41e2a1a8e6c373d55f41fcf9915846707c72d2610fcfe8690cbe28dbfa1716023f851f6dd'
     """
@@ -138,14 +153,23 @@ def decrypt_file_handle(file_object, password):
     # FIXME assuming V001
     # https://pycryptodome.readthedocs.io/en/latest/src/protocol/kdf.html
     log.debug('password %r', password)
-    derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA512)
+    if this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA512:
+        derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA512)
+    else:
+        raise UnsupportedMetaData('keyFactory %r' % this_file_meta['keyFactory'])
     log.debug('derived_key %r', derived_key)
     log.debug('derived_key len %r', len(derived_key))
 
-    cipher = AES.new(derived_key, AES.MODE_GCM, nonce=nonce_bytes)
+    if this_file_meta['cipher'] == JENC_AES_GCM_NoPadding:
+        cipher = AES.new(derived_key, AES.MODE_GCM, nonce=nonce_bytes)
+    else:
+        raise UnsupportedMetaData('cipher %r' % this_file_meta['cipher'])
+
     log.debug('cipher %r', cipher)
     log.debug('content_bytes %r', content_bytes)
-    plaintext_bytes = cipher.decrypt(content_bytes)
+    #plaintext_bytes = cipher.decrypt(content_bytes)  # if you want to decrypt BUT skip MAC check
+    plaintext_bytes = cipher.decrypt_and_verify(content_bytes, auth_tag)  # TODO catch ValueError: MAC check failed
     log.debug('plaintext_bytes %r', plaintext_bytes)
+    original_length = len(content_bytes)
     # FIXME block padding needs to be removed
     return plaintext_bytes
