@@ -80,6 +80,7 @@ jenc_version_details = {
         'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length  # in bytes
     },
 }
+auth_tag_length = 16  # i.e. 16 * 8 == 128-bits
 
 
 def jenc_version_check(jenc_version):
@@ -87,6 +88,71 @@ def jenc_version_check(jenc_version):
         jenc_version = jenc_version.decode('us-ascii')
     if jenc_version not in jenc_version_details:
         raise UnsupportedMetaData('jenc version %r', jenc_version)
+
+def decrypt(password, encrypt_bytes):
+    """Takes in:
+        password string (not bytes)
+        encrypt_bytes
+    Returns plaintext_bytes.
+
+    Sample code:
+
+        import jenc
+
+        password = 'geheim'
+        encrypted_bytes = jenc.encrypt(password, b"Hello World")
+        plaintext_bytes = jenc.decrypt(password, encrypted_bytes)
+    """
+    start_offset, end_offset = 0, 4
+    jenc_version = encrypt_bytes[:end_offset]
+    log.debug('jenc_version %r', jenc_version)
+    jenc_version_check(jenc_version)
+    jenc_version = jenc_version.decode('us-ascii')
+    this_file_meta = jenc_version_details[jenc_version]
+
+    start_offset, end_offset = end_offset, end_offset + this_file_meta['nonceLenth']
+    nonce_bytes = encrypt_bytes[start_offset:end_offset]
+
+    log.debug('%d nonce_bytes %r', len(nonce_bytes), nonce_bytes)
+    log.debug('%d nonce_bytes hex %r', len(nonce_bytes), nonce_bytes.hex())
+
+    start_offset, end_offset = end_offset, end_offset + this_file_meta['keySaltLength']
+    salt_bytes = encrypt_bytes[start_offset:end_offset]
+
+    log.debug('%d salt_bytes %r', len(salt_bytes), salt_bytes)
+    log.debug('%d salt_bytes hex %r', len(salt_bytes), salt_bytes.hex())
+
+    start_offset, end_offset = end_offset, -auth_tag_length
+    content_bytes = encrypt_bytes[start_offset:end_offset]
+    log.debug('%d content_bytes %r', len(content_bytes), content_bytes)
+    log.debug('%d content_bytes hex %r', len(content_bytes), content_bytes.hex())
+
+    auth_tag = encrypt_bytes[-auth_tag_length:]
+    log.debug('%d auth_tag %r', len(auth_tag), auth_tag)
+    log.debug('%d auth_tag hex %r', len(auth_tag), auth_tag.hex())
+
+    # https://pycryptodome.readthedocs.io/en/latest/src/protocol/kdf.html
+    log.debug('password %r', password)
+    if this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA512:
+        derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA512)
+    else:
+        raise UnsupportedMetaData('keyFactory %r' % this_file_meta['keyFactory'])
+    log.debug('derived_key %r', derived_key)
+    log.debug('derived_key len %r', len(derived_key))
+
+    if this_file_meta['cipher'] == JENC_AES_GCM_NoPadding:
+        cipher = AES.new(derived_key, AES.MODE_GCM, nonce=nonce_bytes)
+    else:
+        raise UnsupportedMetaData('cipher %r' % this_file_meta['cipher'])
+
+    log.debug('cipher %r', cipher)
+    log.debug('content_bytes %r', content_bytes)
+    #plaintext_bytes = cipher.decrypt(content_bytes)  # if you want to decrypt BUT skip MAC check
+    plaintext_bytes = cipher.decrypt_and_verify(content_bytes, auth_tag)  # TODO catch ValueError: MAC check failed
+    log.debug('plaintext_bytes %r', plaintext_bytes)
+    original_length = len(content_bytes)
+    return plaintext_bytes
+
 
 def encrypt(password, plaintext_bytes, jenc_version='V001'):
     """Takes in:
@@ -101,11 +167,10 @@ def encrypt(password, plaintext_bytes, jenc_version='V001'):
         import jenc
 
         password = 'geheim'
-        encrypted_bytes = jenc.encrypt_(password, b"Hello World")
+        encrypted_bytes = jenc.encrypt(password, b"Hello World")
     """
     jenc_version_check(jenc_version)
     this_file_meta = jenc_version_details[jenc_version]
-    auth_tag_length = 16  # i.e. 16 * 8 == 128-bits
     nonce_bytes = get_random_bytes(this_file_meta['nonceLenth'])
     salt_bytes = get_random_bytes(this_file_meta['keySaltLength'])
 
@@ -241,5 +306,4 @@ def decrypt_file_handle(file_object, password):
     plaintext_bytes = cipher.decrypt_and_verify(content_bytes, auth_tag)  # TODO catch ValueError: MAC check failed
     log.debug('plaintext_bytes %r', plaintext_bytes)
     original_length = len(content_bytes)
-    # FIXME block padding needs to be removed
     return plaintext_bytes
