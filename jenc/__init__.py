@@ -246,7 +246,7 @@ def decrypt_file_handle(file_object, password):
     salt_bytes = file_object.read(this_file_meta['keySaltLength'])
     content_bytes = file_object.read()  # until EOF
     auth_tag = content_bytes[-AUTH_TAG_LENGTH:]
-    content_bytes = content_bytes[:-AUTH_TAG_LENGTH]  # FIXME inefficient
+    content_bytes = content_bytes[:-AUTH_TAG_LENGTH]  # FIXME inefficient, consider reading entire file and calling decrypt() instead
 
     log.debug('%d nonce_bytes %r', len(nonce_bytes), nonce_bytes)
     log.debug('%d nonce_bytes hex %r', len(nonce_bytes), nonce_bytes.hex())
@@ -284,7 +284,6 @@ def decrypt_file_handle(file_object, password):
     """
 
 
-    # FIXME assuming V001
     # https://pycryptodome.readthedocs.io/en/latest/src/protocol/kdf.html
     log.debug('password %r', password)
     if this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA512:
