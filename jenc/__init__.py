@@ -11,6 +11,8 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Hash import SHA512
 from Crypto.Cipher import AES
 
+from Cryptodome.Random import get_random_bytes  # FIXME
+
 
 class JencException(Exception):
     '''Base jenc exception'''
@@ -66,6 +68,63 @@ U001("PBKDF2WithHmacSHA1", 10000, 256, "AES", 64, "AES/GCM/NoPadding", 32);
 Version(String keyFactory, int keyIterationCount, int keyLength, String keyAlgorithm, int keySaltLength, String cipher, int nonceLenth)
 """
 
+jenc_version_details = {
+    'V001': {
+        # note CamelCase to match https://github.com/opensource21/jpencconverter/blob/f65b630ea190e597ff138d9c1ffa9409bb4d56f7/src/main/java/de/stanetz/jpencconverter/cryption/JavaPasswordbasedCryption.java#L229
+        'keyFactory': JENC_PBKDF2WithHmacSHA512,
+        'keyIterationCount': 10000,  # this is probably too small/few in 2024
+        'keyLength': 256,
+        'keyAlgorithm': 'AES',
+        'keySaltLength': 64,  # in bytes
+        'cipher': JENC_AES_GCM_NoPadding,
+        'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length  # in bytes
+    },
+}
+
+def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version='V001'):
+    """Takes in:
+        file-like object
+        password string (not bytes)
+        plaintext_bytes
+        version (string)
+    Sample code:
+
+        import jenc
+
+        filename = 'testout.md.jenc'
+        password = 'geheim'
+        file_object = open(filename, 'wb')
+        jenc.encrypt_file_handle(file_object, password, b"Hello World")
+        file_object.close()
+    """
+    this_file_meta = jenc_version_details[jenc_version]
+    auth_tag_length = 16  # i.e. 16 * 8 == 128-bits
+    nonce_bytes = get_random_bytes(this_file_meta['nonceLenth'])
+    salt_bytes = get_random_bytes(this_file_meta['keySaltLength'])
+
+    log.debug('password %r', password)
+    if this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA512:
+        derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA512)
+    else:
+        raise UnsupportedMetaData('keyFactory %r' % this_file_meta['keyFactory'])
+    log.debug('derived_key %r', derived_key)
+    log.debug('derived_key len %r', len(derived_key))
+
+    if this_file_meta['cipher'] == JENC_AES_GCM_NoPadding:
+        cipher = AES.new(derived_key, AES.MODE_GCM, nonce=nonce_bytes)
+    else:
+        raise UnsupportedMetaData('cipher %r' % this_file_meta['cipher'])
+
+    log.debug('cipher %r', cipher)
+
+    crypted_bytes, auth_tag = cipher.encrypt_and_digest(plaintext_bytes)
+    file_object.write(jenc_version.encode('us-ascii'))
+    file_object.write(nonce_bytes)
+    file_object.write(salt_bytes)
+    file_object.write(crypted_bytes)
+    file_object.write(auth_tag)
+
+
 def decrypt_file_handle(file_object, password):
     """Takes in:
         file-like object
@@ -91,21 +150,9 @@ def decrypt_file_handle(file_object, password):
     jenc_version = file_object.read(4)
 
     log.debug('jenc_version %r', jenc_version)
-    if jenc_version not in (b'V001'):
+    if jenc_version not in (b'V001'):  # FIXME refactor into function call
         raise NotImplementedError('jenc version %r', jenc_version)
     jenc_version = jenc_version.decode('us-ascii')
-    jenc_version_details = {
-        'V001': {
-            # note CamelCase to match https://github.com/opensource21/jpencconverter/blob/f65b630ea190e597ff138d9c1ffa9409bb4d56f7/src/main/java/de/stanetz/jpencconverter/cryption/JavaPasswordbasedCryption.java#L229
-            'keyFactory': JENC_PBKDF2WithHmacSHA512,
-            'keyIterationCount': 10000,  # this is probably too small/few in 2024
-            'keyLength': 256,
-            'keyAlgorithm': 'AES',
-            'keySaltLength': 64,  # in bytes
-            'cipher': JENC_AES_GCM_NoPadding,
-            'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length  # in bytes
-        },
-    }
     this_file_meta = jenc_version_details[jenc_version]
     nonce_bytes = file_object.read(this_file_meta['nonceLenth'])
     salt_bytes = file_object.read(this_file_meta['keySaltLength'])
