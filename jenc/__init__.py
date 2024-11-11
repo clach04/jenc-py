@@ -85,7 +85,7 @@ jenc_version_details = {
 def jenc_version_check(jenc_version):
     if isinstance(jenc_version, bytes):
         jenc_version = jenc_version.decode('us-ascii')
-    if jenc_version not in ('V001'):
+    if jenc_version not in jenc_version_details:
         raise NotImplementedError('jenc version %r', jenc_version)
 
 def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version='V001'):
