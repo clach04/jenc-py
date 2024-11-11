@@ -97,8 +97,8 @@ def decrypt_file_handle(file_object, password):
         },
     }
     this_file_meta = jenc_version_details[jenc_version]
-    nonce_bytes = file_object.read(this_file_meta['nonceLenth'])  # TODO review bit count versus byte count
-    salt_bytes = file_object.read(this_file_meta['keySaltLength'] )  # appears to be correct byte count.. but wrong bytes
+    nonce_bytes = file_object.read(this_file_meta['nonceLenth'])
+    salt_bytes = file_object.read(this_file_meta['keySaltLength'])
     content_bytes = file_object.read()  # until EOF
 
 
@@ -147,4 +147,5 @@ def decrypt_file_handle(file_object, password):
     log.debug('content_bytes %r', content_bytes)
     plaintext_bytes = cipher.decrypt(content_bytes)
     log.debug('plaintext_bytes %r', plaintext_bytes)
+    # FIXME block padding needs to be removed
     return plaintext_bytes
