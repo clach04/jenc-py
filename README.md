@@ -59,6 +59,8 @@ Test password `geheim` from https://github.com/opensource21/jpencconverter/blob/
 
 There are multiple versions V001 (and the old U001).
 
+TL;DR [AES-256-GCM (No Padding)](https://en.wikipedia.org/wiki/Galois/Counter_Mode), using KDF [pbkdf2-hmac-sha512](https://en.wikipedia.org/wiki/PBKDF2) with 10000 iterations.
+
 File format:
 
   * 4 bytes - define the version.
@@ -79,4 +81,4 @@ From Python code:
     'keyAlgorithm': 'AES',
     'keySaltLength': 64,  # in bytes
     'cipher': 'AES/GCM/NoPadding',
-    'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length  # in bytes
+    'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length # in bytes
