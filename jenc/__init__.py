@@ -1,3 +1,15 @@
+#!/usr/bin/env python
+# -*- coding: us-ascii -*-
+# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+"""Pure Python jenc / Markor / jpencconverter compatible encrypt/decrypt package
+
+  * Markor
+      * https://github.com/gsantner/markor/blob/master/app/thirdparty/java/other/de/stanetz/jpencconverter/JavaPasswordbasedCryption.java
+  * jpencconverter
+      * https://gitlab.com/opensource21/jpencconverter
+      * https://github.com/opensource21/jpencconverter
+
+"""
 
 #import locale
 import logging
@@ -71,7 +83,10 @@ Version(String keyFactory, int keyIterationCount, int keyLength, String keyAlgor
 
 jenc_version_details = {
     'V001': {
-        # note CamelCase to match https://github.com/opensource21/jpencconverter/blob/f65b630ea190e597ff138d9c1ffa9409bb4d56f7/src/main/java/de/stanetz/jpencconverter/cryption/JavaPasswordbasedCryption.java#L229
+        # Markor / jpencconverter JavaPasswordbasedCryption.java enum Version
+        # note CamelCase (and typo/contraction) to match Java implementation
+        #   * https://github.com/gsantner/markor/blob/9ff073aa1f1fbabc9153636a7a0af674786ffb53/app/thirdparty/java/other/de/stanetz/jpencconverter/JavaPasswordbasedCryption.java#L253
+        #   * https://github.com/opensource21/jpencconverter/blob/f65b630ea190e597ff138d9c1ffa9409bb4d56f7/src/main/java/de/stanetz/jpencconverter/cryption/JavaPasswordbasedCryption.java#L229
         'keyFactory': JENC_PBKDF2WithHmacSHA512,
         'keyIterationCount': 10000,  # this is probably too small/few in 2024
         'keyLength': 256,
@@ -81,7 +96,7 @@ jenc_version_details = {
         'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length  # in bytes
     },
 }
-AUTH_TAG_LENGTH = 16  # i.e. 16 * 8 == 128-bits
+AUTH_TAG_LENGTH = 16  # i.e. 16 * 8 == 128-bits ; Markor / jpencconverter JavaPasswordbasedCryption.java : getCipher(); GCMParameterSpec spec = new GCMParameterSpec(16 * 8, nonce);
 
 
 def jenc_version_check(jenc_version):
@@ -104,7 +119,7 @@ def decrypt(password, encrypt_bytes):
         encrypted_bytes = jenc.encrypt(password, b"Hello World")
         plaintext_bytes = jenc.decrypt(password, encrypted_bytes)
     """
-    start_offset, end_offset = 0, 4
+    start_offset, end_offset = 0, 4  # Markor / jpencconverter JavaPasswordbasedCryption.java enum Version NAME_LENGTH
     jenc_version = encrypt_bytes[:end_offset]
     log.debug('jenc_version %r', jenc_version)
     jenc_version_check(jenc_version)
