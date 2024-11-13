@@ -208,6 +208,8 @@ def encrypt(password, plaintext_bytes, jenc_version='V001'):
     log.debug('password %r', password)
     if this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA512:
         derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA512)
+    elif this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA1:
+        derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA1)
     else:
         raise UnsupportedMetaData('keyFactory %r' % this_file_meta['keyFactory'])
     log.debug('derived_key %r', derived_key)
@@ -319,6 +321,8 @@ def decrypt_file_handle(file_object, password):
     log.debug('password %r', password)
     if this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA512:
         derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA512)
+    elif this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA1:
+        derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA1)
     else:
         raise UnsupportedMetaData('keyFactory %r' % this_file_meta['keyFactory'])
     log.debug('derived_key %r', derived_key)

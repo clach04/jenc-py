@@ -60,32 +60,65 @@ class TestUtil(unittest.TestCase):
             """
 
 class TestJenc(TestUtil):
-    def check_get_what_you_put_in(self, original_plaintext, password):
-        encrypted_bytes = jenc.encrypt(password, original_plaintext)
+    def check_get_what_you_put_in(self, original_plaintext, password, version=None):
+        if version:
+            encrypted_bytes = jenc.encrypt(password, original_plaintext, jenc_version=version)
+            self.assertEqual(version.encode('us-ascii'), encrypted_bytes[:4])
+        else:
+            encrypted_bytes = jenc.encrypt(password, original_plaintext)
         plaintext_bytes = jenc.decrypt(password, encrypted_bytes)
 
         self.assertEqual(plaintext_bytes, original_plaintext)
 
-    def check_same_input_different_crypted_text(self, original_plaintext, password):
-        encrypted_bytes1 = jenc.encrypt(password, original_plaintext)
+    def check_same_input_different_crypted_text(self, original_plaintext, password, version=None):
+        if version:
+            encrypted_bytes1 = jenc.encrypt(password, original_plaintext, jenc_version=version)
+            self.assertEqual(version.encode('us-ascii'), encrypted_bytes1[:4])
+        else:
+            encrypted_bytes1 = jenc.encrypt(password, original_plaintext)
         plaintext_bytes1 = jenc.decrypt(password, encrypted_bytes1)
 
-        encrypted_bytes2 = jenc.encrypt(password, original_plaintext)
+        if version:
+            encrypted_bytes2 = jenc.encrypt(password, original_plaintext, jenc_version=version)
+            self.assertEqual(version.encode('us-ascii'), encrypted_bytes2[:4])
+        else:
+            encrypted_bytes2 = jenc.encrypt(password, original_plaintext)
         plaintext_bytes2 = jenc.decrypt(password, encrypted_bytes2)
 
         self.assertEqual(original_plaintext, plaintext_bytes1)
         self.assertEqual(original_plaintext, plaintext_bytes2)
         self.assertNotEqual(encrypted_bytes1, encrypted_bytes2)
 
-    def test_hello_world_enc_dec(self):
+    def test_hello_world_enc_dec_default_encryption(self):
         password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
         original_plaintext = b"Hello World"
         self.check_get_what_you_put_in(original_plaintext, password)
 
-    def test_hello_world_encs_different_each_time(self):
+    def test_hello_world_encs_different_each_time_encryption(self):
         password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
         original_plaintext = b"Hello World"
         self.check_same_input_different_crypted_text(original_plaintext, password)
+
+    def test_hello_world_enc_dec_default_v001(self):
+        password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
+        original_plaintext = b"Hello World"
+        self.check_get_what_you_put_in(original_plaintext, password, version='V001')
+
+    def test_hello_world_encs_different_each_time_v001(self):
+        password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
+        original_plaintext = b"Hello World"
+        self.check_same_input_different_crypted_text(original_plaintext, password, version='V001')
+
+    def test_hello_world_enc_dec_default_u001(self):
+        password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
+        original_plaintext = b"Hello World"
+        self.check_get_what_you_put_in(original_plaintext, password, version='U001')
+
+    def test_hello_world_encs_different_each_time_u001(self):
+        password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
+        original_plaintext = b"Hello World"
+        self.check_same_input_different_crypted_text(original_plaintext, password, version='U001')
+
 
 class TestJencFiles(TestUtil):
     data_folder = os.path.join(
