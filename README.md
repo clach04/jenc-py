@@ -8,7 +8,8 @@ https://github.com/clach04/jenc-py
 ensure that it is legal in your country to use the specific encryption ciphers.
 Some countries have also have restrictions on import, export, and usage see http://www.cryptolaw.org/cls-sum.htm
 
-The aim is to have a pure python (with crypto dependencies) [jenc](https://github.com/opensource21/jpencconverter) (as used by [Markor](https://github.com/gsantner/markor)) decrypt/encrypt library.
+The aim is to have a pure python (with crypto dependencies) library that is able to read/write .jenc files as used by [Markor](https://github.com/gsantner/markor)
+which uses the [jenc](https://github.com/opensource21/jpencconverter) format decrypt/encrypt Java library.
 
   * [Getting Started](#getting-started)
     + [Regular install](#regular-install)
