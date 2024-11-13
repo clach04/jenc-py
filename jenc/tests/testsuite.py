@@ -59,7 +59,7 @@ class TestUtil(unittest.TestCase):
             #raise Exception(reason)
             """
 
-class TestJenc(TestUtil):
+class TestJencUtil(TestUtil):
     def check_get_what_you_put_in(self, original_plaintext, password, version=None):
         if version:
             encrypted_bytes = jenc.encrypt(password, original_plaintext, jenc_version=version)
@@ -88,6 +88,8 @@ class TestJenc(TestUtil):
         self.assertEqual(original_plaintext, plaintext_bytes1)
         self.assertEqual(original_plaintext, plaintext_bytes2)
         self.assertNotEqual(encrypted_bytes1, encrypted_bytes2)
+
+class TestJenc(TestJencUtil):
 
     def test_hello_world_enc_dec_default_encryption(self):
         password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
@@ -120,7 +122,7 @@ class TestJenc(TestUtil):
         self.check_same_input_different_crypted_text(original_plaintext, password, version='U001')
 
 
-class TestJencFiles(TestUtil):
+class TestJencFiles(TestJencUtil):
     data_folder = os.path.join(
                     os.path.dirname(jenc.tests.__file__),
                     'data'
