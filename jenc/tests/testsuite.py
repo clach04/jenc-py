@@ -122,6 +122,25 @@ class TestJenc(TestJencUtil):
         self.check_same_input_different_crypted_text(original_plaintext, password, version='U001')
 
 
+class TestJencWhiteBox(TestJencUtil):
+    """Look inside jenc for all versions and test them, hopefully catch any new versions that are not explictly (manually) added above
+    Actual number of tests is = test method count * real number of versions
+    """
+
+    def test_hello_world_enc_dec_default_all_versions(self):
+        password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
+        original_plaintext = b"Hello World"
+        for version in jenc.jenc_version_details:
+            self.check_get_what_you_put_in(original_plaintext, password, version=version)
+
+    def test_hello_world_encs_different_each_time_all_versions(self):
+        password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
+        original_plaintext = b"Hello World"
+        for version in jenc.jenc_version_details:
+            self.check_same_input_different_crypted_text(original_plaintext, password, version=version)
+
+
+
 class TestJencFiles(TestJencUtil):
     data_folder = os.path.join(
                     os.path.dirname(jenc.tests.__file__),
