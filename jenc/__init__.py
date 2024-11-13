@@ -20,6 +20,7 @@ import sys
 # http://www.dlitz.net/software/pycrypto/ - PyCrypto - The Python Cryptography Toolkit
 import Crypto
 from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Hash import SHA1
 from Crypto.Hash import SHA512
 from Crypto.Cipher import AES
 
@@ -63,6 +64,7 @@ log.addHandler(ch)
 #log.debug('encodings %r', (sys.getdefaultencoding(), sys.getfilesystemencoding(), locale.getdefaultlocale()))
 
 
+JENC_PBKDF2WithHmacSHA1 = 'PBKDF2WithHmacSHA1'
 JENC_PBKDF2WithHmacSHA512 = 'PBKDF2WithHmacSHA512'
 JENC_AES_GCM_NoPadding = 'AES/GCM/NoPadding'
 
@@ -82,11 +84,22 @@ Version(String keyFactory, int keyIterationCount, int keyLength, String keyAlgor
 """
 
 jenc_version_details = {
+    # Markor / jpencconverter JavaPasswordbasedCryption.java enum Version
+    # note CamelCase (and typo/contraction) to match Java implementation
+    #   * https://github.com/gsantner/markor/blob/9ff073aa1f1fbabc9153636a7a0af674786ffb53/app/thirdparty/java/other/de/stanetz/jpencconverter/JavaPasswordbasedCryption.java#L253
+    #   * https://github.com/opensource21/jpencconverter/blob/f65b630ea190e597ff138d9c1ffa9409bb4d56f7/src/main/java/de/stanetz/jpencconverter/cryption/JavaPasswordbasedCryption.java#L229
+    # U001("PBKDF2WithHmacSHA1", 10000, 256, "AES", 64, "AES/GCM/NoPadding", 32);
+    # V001("PBKDF2WithHmacSHA512", 10000, 256, "AES", 64, "AES/GCM/NoPadding", 32),
+    'U001': {  # NOTE Deprecated, i.e. not recommended
+        'keyFactory': JENC_PBKDF2WithHmacSHA1,
+        'keyIterationCount': 10000,  # this is probably too small/few in 2024
+        'keyLength': 256,
+        'keyAlgorithm': 'AES',
+        'keySaltLength': 64,  # in bytes
+        'cipher': JENC_AES_GCM_NoPadding,
+        'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length  # in bytes
+    },
     'V001': {
-        # Markor / jpencconverter JavaPasswordbasedCryption.java enum Version
-        # note CamelCase (and typo/contraction) to match Java implementation
-        #   * https://github.com/gsantner/markor/blob/9ff073aa1f1fbabc9153636a7a0af674786ffb53/app/thirdparty/java/other/de/stanetz/jpencconverter/JavaPasswordbasedCryption.java#L253
-        #   * https://github.com/opensource21/jpencconverter/blob/f65b630ea190e597ff138d9c1ffa9409bb4d56f7/src/main/java/de/stanetz/jpencconverter/cryption/JavaPasswordbasedCryption.java#L229
         'keyFactory': JENC_PBKDF2WithHmacSHA512,
         'keyIterationCount': 10000,  # this is probably too small/few in 2024
         'keyLength': 256,
@@ -151,6 +164,8 @@ def decrypt(password, encrypt_bytes):
     log.debug('password %r', password)
     if this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA512:
         derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA512)
+    elif this_file_meta['keyFactory'] == JENC_PBKDF2WithHmacSHA1:
+        derived_key = PBKDF2(password, salt_bytes, this_file_meta['keyLength'] // 8, count=this_file_meta['keyIterationCount'], hmac_hash_module=SHA1)
     else:
         raise UnsupportedMetaData('keyFactory %r' % this_file_meta['keyFactory'])
     log.debug('derived_key %r', derived_key)
