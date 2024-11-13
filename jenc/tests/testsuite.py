@@ -87,6 +87,50 @@ class TestJenc(TestUtil):
         original_plaintext = b"Hello World"
         self.check_same_input_different_crypted_text(original_plaintext, password)
 
+class TestJencFiles(TestUtil):
+    data_folder = os.path.join(
+                    os.path.dirname(jenc.tests.__file__),
+                    'data'
+    )
+    password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
+
+    def check_decrypt_file(self, encrypted_filename, plaintext_filename):
+        encrypted_file = open(os.path.join(self.data_folder, encrypted_filename), 'rb')
+        plaintext_file = open(os.path.join(self.data_folder, plaintext_filename), 'rb')
+
+        encrypted = encrypted_file.read()
+        plaintext = plaintext_file.read()
+
+        encrypted_file.close()
+        plaintext_file.close()
+
+        test_plaintext_bytes = jenc.decrypt(self.password, encrypted)
+        #print('%d : %r' % (len(test_plaintext_bytes), test_plaintext_bytes))
+        #print('%d : %r' % (len(plaintext), plaintext))
+        #print('%d' % len(test_plaintext_bytes))
+        #print('%d' % len(plaintext))
+
+        test_plaintext_bytes = test_plaintext_bytes.replace(b'\r', b'')
+        plaintext = plaintext.replace(b'\r', b'')
+        #print('%d' % len(test_plaintext_bytes))
+        #print('%d' % len(plaintext))
+
+        self.assertEqual(plaintext, test_plaintext_bytes)
+
+
+    def test_jpencconverter_test3(self):
+        self.check_decrypt_file('Test3.md.jenc', 'Test3.md')  # NOTE jpencconverter trims off newline at EOF!
+
+    def test_jpencconverter_u001(self):
+        self.check_decrypt_file('test.u001_winnewlines.md.jenc', 'test.u001.md')  # NOTE jpencconverter trims off newline at EOF!
+
+    def test_jpencconverter_v001(self):
+        self.check_decrypt_file('test.v001_winnewlines.md.jenc', 'test.v001.md')  # NOTE jpencconverter trims off newline at EOF!
+
+# TODO test decryption failure on bad version. e.g. 0000
+# TODO test decryption failure on bad password
+# TODO test decryption failure on corrupted file (change a byte, hmac and also payload).
+
 
 def main():
     print(sys.version.replace('\n', ' '))
