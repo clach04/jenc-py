@@ -426,7 +426,7 @@ def main(argv=None):
         else:
             # encrypt
             if options.jenc_version:
-                encrypted_bytes = encrypt(password, in_file_bytes, jenc_version=jenc_version)
+                encrypted_bytes = encrypt(password, in_file_bytes, jenc_version=options.jenc_version)
             else:
                 encrypted_bytes = encrypt(password, in_file_bytes)
             out_file.write(encrypted_bytes)
