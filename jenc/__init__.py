@@ -11,10 +11,13 @@
 
 """
 
+import getpass
 #import locale
 import logging
+import optparse
 import os
 import sys
+import time
 
 # https://github.com/Legrandin/pycryptodome - PyCryptodome (safer/modern PyCrypto)
 # http://www.dlitz.net/software/pycrypto/ - PyCrypto - The Python Cryptography Toolkit
@@ -27,6 +30,10 @@ from Crypto.Cipher import AES
 from Cryptodome.Random import get_random_bytes  # FIXME
 
 from ._version import __version__, __version_info__
+
+
+is_py3 = sys.version_info >= (3,)
+
 
 class JencException(Exception):
     '''Base jenc exception'''
@@ -340,3 +347,108 @@ def decrypt_file_handle(file_object, password):
     log.debug('plaintext_bytes %r', plaintext_bytes)
     original_length = len(content_bytes)
     return plaintext_bytes
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    # python -m jenc
+    usage = "usage: %prog [options] in_filename"
+    parser = optparse.OptionParser(
+        usage=usage,
+        version="%prog " + __version__,
+        description="Command line tool to encrypt/decrypt; .jenc / Markor / jpencconverter files"
+    )
+    parser.add_option("-o", "--output", dest="out_filename", default='-', help="write output to FILE", metavar="FILE")
+    parser.add_option("-d", "--decrypt", action="store_true", dest="decrypt", default=True, help="decrypt in_filename")
+    parser.add_option("-e", "--encrypt", action="store_false", dest="decrypt", help="encrypt in_filename")
+    #parser.add_option("-c", "--codec", help="File encoding", default='utf-8')  # probably not needed, treat in/out as raw bytes
+    parser.add_option("-E", "--envvar", help="Name of environment variable to get password from (defaults to JENC_PASSWORD) - unsafe", default="JENC_PASSWORD")  # similar to https://ccrypt.sourceforge.net/
+    parser.add_option("-p", "--password", help="password, if omitted but OS env JENC_PASSWORD is set use that, if missing prompt - unsafe")
+    parser.add_option("-P", "--password_file", help="file name where password is to be read from, trailing blanks are ignored")
+    parser.add_option("-j", "--jenc-version", "--jenc_version", help="jenc version to use, case sensitive")
+    parser.add_option("-v", "--verbose", action="store_true")
+    parser.add_option("-s", "--silent", help="if specified do not warn about stdin using", action="store_false", default=True)
+
+    (options, args) = parser.parse_args(argv[1:])
+    #print('%r' % ((options, args),))
+    verbose = options.verbose
+    if verbose:
+        print(sys.version.replace('\n', ' '))
+
+    try:
+        in_filename = args[0]
+    except IndexError:
+        # no filename specified so default to stdin
+        in_filename = '-'
+
+    if options.password_file:
+        f = open(options.password_file, 'rb')
+        password_file = f.read()
+        f.close()
+        password_file = password_file.strip()
+    else:
+        password_file = None
+    password = options.password or password_file or os.environ.get(options.envvar or 'JENC_PASSWORD') or getpass.getpass("Password:")
+    decrypt_mode = options.decrypt  # TODO possible additional heuristics; filename extension, read the first bytes and sniff/magic value match it
+    out_filename = options.out_filename
+
+    if in_filename == '-':
+        if is_py3:
+            in_file = sys.stdin.buffer
+        else:
+            in_file = sys.stdin
+        if options.silent:
+            sys.stderr.write('Read in from stdin...')
+            sys.stderr.flush()
+        # TODO for py3 handle string versus bytes
+    else:
+        in_file = open(in_filename, 'rb')
+    if out_filename == '-':
+        if is_py3:
+            out_file = sys.stdout.buffer
+        else:
+            out_file = sys.stdout
+        # handle string versus bytes....?
+    else:
+        out_file = open(out_filename, 'wb')
+
+    in_file_bytes = in_file.read()  # read all in at once
+    start_time = time.time()
+    failed = True
+    try:
+        if decrypt_mode:
+            #import pdb ; pdb.set_trace()
+            test_plaintext_bytes = decrypt(password, in_file_bytes)
+            out_file.write(test_plaintext_bytes)
+            failed = False
+        else:
+            # encrypt
+            if options.jenc_version:
+                encrypted_bytes = encrypt(password, in_file_bytes, jenc_version=jenc_version)
+            else:
+                encrypted_bytes = encrypt(password, in_file_bytes)
+            out_file.write(encrypted_bytes)
+            failed = False
+    except JencException as info:  # TODO catch additional specific jenc exceptions
+        print("JencException %r" % (info,))
+    except Exception as info:  # TODO catch specific jenc exceptions
+        print("Exception %r" % (info,))
+    finally:
+        if in_file != sys.stdin:
+            in_file.close()
+        if out_file != sys.stdout:
+            out_file.close()
+    stop_time = time.time()
+    sys.stderr.write('\ntook %f secs' % (stop_time - start_time,))
+    sys.stderr.flush()
+
+    if failed:
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
