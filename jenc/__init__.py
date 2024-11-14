@@ -203,7 +203,7 @@ def decrypt(password, encrypt_bytes):
     return plaintext_bytes
 
 
-def encrypt(password, plaintext_bytes, jenc_version=DEFAULT_JENC_VERSION):
+def encrypt(password, plaintext_bytes, jenc_version=None):
     """Takes in:
         file-like object
         password string (not bytes)
@@ -218,6 +218,7 @@ def encrypt(password, plaintext_bytes, jenc_version=DEFAULT_JENC_VERSION):
         password = 'geheim'
         encrypted_bytes = jenc.encrypt(password, b"Hello World")
     """
+    jenc_version = jenc_version or DEFAULT_JENC_VERSION
     jenc_version_check(jenc_version)
     this_file_meta = jenc_version_details[jenc_version]
     nonce_bytes = get_random_bytes(this_file_meta['nonceLenth'])
@@ -245,7 +246,7 @@ def encrypt(password, plaintext_bytes, jenc_version=DEFAULT_JENC_VERSION):
     return jenc_version.encode('us-ascii') + nonce_bytes + salt_bytes + crypted_bytes + auth_tag
 
 
-def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version=DEFAULT_JENC_VERSION):
+def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version=None):
     """Takes in:
         file-like object
         password string (not bytes)
