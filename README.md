@@ -16,6 +16,9 @@ which uses the [jenc](https://github.com/opensource21/jpencconverter) format dec
     + [Without a source code checkout](#without-a-source-code-checkout)
     + [From a source code checkout](#from-a-source-code-checkout)
   * [Examples](#examples)
+    + [Command line Encrypt / Decrypt](#command-line-encrypt---decrypt)
+      - [Command line Decrypt](#command-line-decrypt)
+      - [Command line Encrypt](#command-line-encrypt)
     + [Example Encrypt / Decrypt in memory](#example-encrypt---decrypt-in-memory)
   * [jenc file format](#jenc-file-format)
     + [jenc file format - V001](#jenc-file-format---v001)
@@ -43,6 +46,55 @@ Picking up the latest version
     python -m pip install -e .
 
 ## Examples
+
+### Command line Encrypt / Decrypt
+
+Help:
+
+    Usage: [options] in_filename
+
+    Command line tool to encrypt/decrypt; .jenc / Markor / jpencconverter files
+
+    Options:
+      --version             show program's version number and exit
+      -h, --help            show this help message and exit
+      -o FILE, --output=FILE
+                            write output to FILE
+      -d, --decrypt         decrypt in_filename
+      -e, --encrypt         encrypt in_filename
+      -E ENVVAR, --envvar=ENVVAR
+                            Name of environment variable to get password from
+                            (defaults to JENC_PASSWORD) - unsafe
+      -p PASSWORD, --password=PASSWORD
+                            password, if omitted but OS env JENC_PASSWORD is set
+                            use that, if missing prompt - unsafe
+      -P PASSWORD_FILE, --password_file=PASSWORD_FILE
+                            file name where password is to be read from, trailing
+                            blanks are ignored
+      -j JENC_VERSION, --jenc-version=JENC_VERSION, --jenc_version=JENC_VERSION
+                            jenc version to use, case sensitive
+      -v, --verbose
+      -s, --silent          if specified do not warn about stdin using
+
+
+#### Command line Decrypt
+
+To stdout
+
+    # Test V001 file from jpencconverter
+    python -m jenc -p geheim jenc\tests\data\Test3.md.jenc
+
+To a file named `output.txt`
+
+    python -m jenc -p geheim jenc\tests\data\Test3.md.jenc -o output.txt
+
+
+#### Command line Encrypt
+
+Encrypt stdin, into `output.txt.jenc`
+
+    echo hello| python -m jenc --encrypt -p geheim - -o output.txt.jenc
+    echo hello| python -m jenc -e        -p geheim - -o output.txt.jenc
 
 ### Example Encrypt / Decrypt in memory
 
