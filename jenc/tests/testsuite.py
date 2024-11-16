@@ -107,6 +107,16 @@ class TestJencErrors(TestJencUtil):
         self.assertEqual(encrypted_bytes, hello_world_plaintext)
         invalid_version = b'AAAA'
         self.assertRaises(jenc.UnsupportedMetaData, jenc.decrypt, hello_password, invalid_version + hello_world_v001[4:])
+
+    def test_hello_world_decrypt_bad_bytes(self):
+        encrypted_bytes = jenc.decrypt(hello_password, hello_world_v001)
+        self.assertEqual(encrypted_bytes, hello_world_plaintext)
+        spurious_byte = b'\x00'
+        spurious_byte_offset = 5
+        self.assertNotEqual(spurious_byte, hello_world_v001[spurious_byte_offset])
+        bad_hello_world_v001 = hello_world_v001[:spurious_byte_offset-1] + spurious_byte + hello_world_v001[spurious_byte_offset:]
+        self.assertEqual(len(hello_world_v001), len(bad_hello_world_v001))
+        self.assertRaises(jenc.JencDecryptError, jenc.decrypt, hello_password, bad_hello_world_v001)
 # TODO test decryption failure on corrupted file (change a byte, hmac and also payload).
 
 
