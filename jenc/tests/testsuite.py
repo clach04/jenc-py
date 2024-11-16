@@ -60,13 +60,14 @@ class TestUtil(unittest.TestCase):
             """
 
 class TestJencUtil(TestUtil):
-    def check_get_what_you_put_in(self, original_plaintext, password, version=None):
+    def check_get_what_you_put_in(self, original_plaintext, password, version=None, decrypt_password=None):
+        decrypt_password = decrypt_password or password
         if version:
             encrypted_bytes = jenc.encrypt(password, original_plaintext, jenc_version=version)
             self.assertEqual(version.encode('us-ascii'), encrypted_bytes[:4])
         else:
             encrypted_bytes = jenc.encrypt(password, original_plaintext)
-        plaintext_bytes = jenc.decrypt(password, encrypted_bytes)
+        plaintext_bytes = jenc.decrypt(decrypt_password, encrypted_bytes)
 
         self.assertEqual(plaintext_bytes, original_plaintext)
 
