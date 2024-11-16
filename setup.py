@@ -17,6 +17,7 @@ import platform
 try:
     from setuptools import setup, find_packages
 except ImportError:
+    # NOTE distutils supposed to be removed from Python 3.12
     from distutils.core import setup
     find_packages = None
 
