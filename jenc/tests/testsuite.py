@@ -59,14 +59,19 @@ class TestUtil(unittest.TestCase):
             #raise Exception(reason)
             """
 
+hello_password = 'geheim'
+hello_world_plaintext = b"Hello World"
+hello_world_v001 = b'V001\xa3\x9d\xf7\xa4\xa7\xa1\xff\x18\x82y\x18\x83\xc6\x97RMgp\xd1\xa6\t\x9c+\xb8\x97\x85U\xed\x02\xca\xaa\xbe[\x92<\xc2\x8cuf\x1b\x03TA&\rkm\x86GH\xd1\xb7\xb5\x1e\x81\xf0\xe4\xa9J\xcei\x130\xe6\xa4\x93\x9aMgh\x9e\xa3\xd3I\xd0a\x98U\x9f6<\x01\xe2A\x88\x9d!\x02\xbe\xf5\xb9\xdd\xb9\xa7\t)N?\x8e\x03K\xb0e?\xd4\x9e\x99\x96\x10R\xf4FC\xe6V\xd7\xdfF\xdbn\xc1bc'
+
 class TestJencUtil(TestUtil):
-    def check_get_what_you_put_in(self, original_plaintext, password, version=None):
+    def check_get_what_you_put_in(self, original_plaintext, password, version=None, decrypt_password=None):
+        decrypt_password = decrypt_password or password
         if version:
             encrypted_bytes = jenc.encrypt(password, original_plaintext, jenc_version=version)
             self.assertEqual(version.encode('us-ascii'), encrypted_bytes[:4])
         else:
             encrypted_bytes = jenc.encrypt(password, original_plaintext)
-        plaintext_bytes = jenc.decrypt(password, encrypted_bytes)
+        plaintext_bytes = jenc.decrypt(decrypt_password, encrypted_bytes)
 
         self.assertEqual(plaintext_bytes, original_plaintext)
 
@@ -88,6 +93,93 @@ class TestJencUtil(TestUtil):
         self.assertEqual(original_plaintext, plaintext_bytes1)
         self.assertEqual(original_plaintext, plaintext_bytes2)
         self.assertNotEqual(encrypted_bytes1, encrypted_bytes2)
+
+class TestJencErrors(TestJencUtil):
+    def test_hello_world_decrypt_wrong_password(self):
+        password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
+        decrypt_password = 'bad password'  # deliberately different
+        original_plaintext = b"Hello World"
+        self.assertNotEqual(password, decrypt_password)
+        self.assertRaises(jenc.JencDecryptError, self.check_get_what_you_put_in, original_plaintext, password, decrypt_password=decrypt_password)
+
+    def test_hello_world_decrypt_bad_version(self):
+        encrypted_bytes = jenc.decrypt(hello_password, hello_world_v001)
+        self.assertEqual(encrypted_bytes, hello_world_plaintext)
+        invalid_version = b'AAAA'
+        self.assertRaises(jenc.UnsupportedMetaData, jenc.decrypt, hello_password, invalid_version + hello_world_v001[4:])
+
+    def test_hello_world_decrypt_bad_bytes_nonce_first(self):
+        encrypted_bytes = jenc.decrypt(hello_password, hello_world_v001)
+        self.assertEqual(encrypted_bytes, hello_world_plaintext)
+        spurious_byte = b'\x00'
+        spurious_byte_offset = 5
+        self.assertNotEqual(spurious_byte, hello_world_v001[spurious_byte_offset])
+        bad_hello_world_v001 = hello_world_v001[:spurious_byte_offset-1] + spurious_byte + hello_world_v001[spurious_byte_offset:]
+        self.assertEqual(len(hello_world_v001), len(bad_hello_world_v001))
+        self.assertRaises(jenc.JencDecryptError, jenc.decrypt, hello_password, bad_hello_world_v001)
+
+    def test_hello_world_decrypt_bad_bytes_hmac_second_to_last(self):
+        encrypted_bytes = jenc.decrypt(hello_password, hello_world_v001)
+        self.assertEqual(encrypted_bytes, hello_world_plaintext)
+        spurious_byte = b'\x00'
+        spurious_byte_offset = 126
+        self.assertNotEqual(spurious_byte, hello_world_v001[spurious_byte_offset])
+        bad_hello_world_v001 = hello_world_v001[:spurious_byte_offset-1] + spurious_byte + hello_world_v001[spurious_byte_offset:]
+        #print('')
+        #print(repr(hello_world_v001))
+        #print(repr(bad_hello_world_v001))
+        self.assertEqual(len(hello_world_v001), len(bad_hello_world_v001))
+        self.assertRaises(jenc.JencDecryptError, jenc.decrypt, hello_password, bad_hello_world_v001)
+
+    def test_hello_world_decrypt_bad_bytes_hmac_second_to_last_skip_hmac_check(self):
+        encrypted_bytes = jenc.decrypt(hello_password, hello_world_v001)
+        self.assertEqual(encrypted_bytes, hello_world_plaintext)
+        spurious_byte = b'\x00'
+        spurious_byte_offset = 126
+        self.assertNotEqual(spurious_byte, hello_world_v001[spurious_byte_offset])
+        bad_hello_world_v001 = hello_world_v001[:spurious_byte_offset-1] + spurious_byte + hello_world_v001[spurious_byte_offset:]
+        #print('')
+        #print(repr(hello_world_v001))
+        #print(repr(bad_hello_world_v001))
+        self.assertEqual(len(hello_world_v001), len(bad_hello_world_v001))
+        result = jenc.decrypt(hello_password, bad_hello_world_v001, skip_hmac_check=True)  # will decrypt fine, but can not be sure it decrypted correctly as no check performed
+        self.assertEqual(hello_world_plaintext, result)
+
+    def test_hello_world_decrypt_bad_bytes_nonce_skip_hmac_check(self):
+        encrypted_bytes = jenc.decrypt(hello_password, hello_world_v001)
+        self.assertEqual(encrypted_bytes, hello_world_plaintext)
+        spurious_byte = b'\x00'
+        spurious_byte_offset = 5  # first byte of payload, which is the nonce
+        self.assertNotEqual(spurious_byte, hello_world_v001[spurious_byte_offset])
+        bad_hello_world_v001 = hello_world_v001[:spurious_byte_offset-1] + spurious_byte + hello_world_v001[spurious_byte_offset:]
+        self.assertEqual(len(hello_world_v001), len(bad_hello_world_v001))
+        result = jenc.decrypt(hello_password, bad_hello_world_v001, skip_hmac_check=True)  # will decrypt with no errors, but no checks and the result will be garbage
+        self.assertNotEqual(hello_world_plaintext, result)
+
+    def test_hello_world_decrypt_bad_bytes_middle_skip_hmac_check(self):
+        encrypted_bytes = jenc.decrypt(hello_password, hello_world_v001)
+        self.assertEqual(encrypted_bytes, hello_world_plaintext)
+        spurious_byte = b'\x00'
+        spurious_byte_offset = 90
+        self.assertNotEqual(spurious_byte, hello_world_v001[spurious_byte_offset])
+        bad_hello_world_v001 = hello_world_v001[:spurious_byte_offset-1] + spurious_byte + hello_world_v001[spurious_byte_offset:]
+        self.assertEqual(len(hello_world_v001), len(bad_hello_world_v001))
+        result = jenc.decrypt(hello_password, bad_hello_world_v001, skip_hmac_check=True)  # will decrypt with no errors, but no checks and the result will be garbage
+        self.assertNotEqual(hello_world_plaintext, result)
+
+    def test_hello_world_decrypt_bad_bytes_actual_payload_skip_hmac_check(self):
+        encrypted_bytes = jenc.decrypt(hello_password, hello_world_v001)
+        self.assertEqual(encrypted_bytes, hello_world_plaintext)
+        spurious_byte = b'\x00'
+        spurious_byte_offset = (len(hello_world_v001) - jenc.AUTH_TAG_LENGTH) - 1
+        self.assertNotEqual(spurious_byte, hello_world_v001[spurious_byte_offset])
+        bad_hello_world_v001 = hello_world_v001[:spurious_byte_offset-1] + spurious_byte + hello_world_v001[spurious_byte_offset:]
+        self.assertEqual(len(hello_world_v001), len(bad_hello_world_v001))
+        result = jenc.decrypt(hello_password, bad_hello_world_v001, skip_hmac_check=True)  # will decrypt with no errors, but no checks and the result will be partially garbage
+        print(repr(result))
+        self.assertEqual(hello_world_plaintext[:9], result[:9])  # start will be fine
+        self.assertNotEqual(hello_world_plaintext, result)
+
 
 class TestJenc(TestJencUtil):
 
@@ -141,7 +233,6 @@ class TestJencWhiteBox(TestJencUtil):
             self.check_same_input_different_crypted_text(original_plaintext, password, version=version)
 
 
-
 class TestJencFiles(TestJencUtil):
     data_folder = os.path.join(
                     os.path.dirname(jenc.tests.__file__),
@@ -181,10 +272,6 @@ class TestJencFiles(TestJencUtil):
 
     def test_jpencconverter_v001(self):
         self.check_decrypt_file('test.v001_winnewlines.md.jenc', 'test.v001.md')  # NOTE jpencconverter trims off newline at EOF!
-
-# TODO test decryption failure on bad version. e.g. 0000
-# TODO test decryption failure on bad password
-# TODO test decryption failure on corrupted file (change a byte, hmac and also payload).
 
 
 def main():

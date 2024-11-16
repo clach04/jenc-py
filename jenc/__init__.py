@@ -41,6 +41,9 @@ class JencException(Exception):
 class UnsupportedMetaData(JencException):
     '''version, meta data, etc. not supported exception'''
 
+class JencDecryptError(JencException):
+    '''Unable to decrypt, likely wrong password but could be corrupted encrypted input'''
+
 
 
 # create log
@@ -136,11 +139,12 @@ def jenc_version_check(jenc_version):
     if jenc_version not in jenc_version_details:
         raise UnsupportedMetaData('jenc version %r', jenc_version)
 
-def decrypt(password, encrypt_bytes):
+def decrypt(password, encrypt_bytes, skip_hmac_check=False):
     """Takes in:
         password string (not bytes)
         encrypt_bytes
     Returns plaintext_bytes.
+    DO NOT USE skip_hmac_check! For debug only
 
     Sample code:
 
@@ -196,8 +200,13 @@ def decrypt(password, encrypt_bytes):
 
     log.debug('cipher %r', cipher)
     log.debug('content_bytes %r', content_bytes)
-    #plaintext_bytes = cipher.decrypt(content_bytes)  # if you want to decrypt BUT skip MAC check
-    plaintext_bytes = cipher.decrypt_and_verify(content_bytes, auth_tag)  # TODO catch ValueError: MAC check failed
+    if skip_hmac_check:
+        plaintext_bytes = cipher.decrypt(content_bytes)  # if you want to decrypt BUT skip MAC check
+    else:
+        try:
+            plaintext_bytes = cipher.decrypt_and_verify(content_bytes, auth_tag)  # TODO catch ValueError: MAC check failed
+        except ValueError as info:
+            raise JencDecryptError(info)
     log.debug('plaintext_bytes %r', plaintext_bytes)
     original_length = len(content_bytes)
     return plaintext_bytes

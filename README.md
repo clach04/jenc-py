@@ -45,6 +45,11 @@ Picking up the latest version
     # TODO requirements_optional.txt
     python -m pip install -e .
 
+#### Run test suite
+
+    python -m jenc.tests.testsuite
+    python -m jenc.tests.testsuite -v
+
 ## Examples
 
 ### Command line Encrypt / Decrypt
