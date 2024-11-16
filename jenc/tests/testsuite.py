@@ -95,18 +95,19 @@ class TestJencUtil(TestUtil):
         self.assertNotEqual(encrypted_bytes1, encrypted_bytes2)
 
 class TestJencErrors(TestJencUtil):
-    def test_hello_world_wrong_password(self):
+    def test_hello_world_decrypt_wrong_password(self):
         password = 'geheim'  # same password used in demos for Java version https://github.com/opensource21/jpencconverter/tree/master/src/test/encrypted
         decrypt_password = 'bad password'  # deliberately different
         original_plaintext = b"Hello World"
         self.assertNotEqual(password, decrypt_password)
         self.assertRaises(jenc.JencDecryptError, self.check_get_what_you_put_in, original_plaintext, password, decrypt_password=decrypt_password)
 
-    def test_hello_world_dec(self):
+    def test_hello_world_decrypt_bad_version(self):
         encrypted_bytes = jenc.decrypt(hello_password, hello_world_v001)
         self.assertEqual(encrypted_bytes, hello_world_plaintext)
         invalid_version = b'AAAA'
         self.assertRaises(jenc.UnsupportedMetaData, jenc.decrypt, hello_password, invalid_version + hello_world_v001[4:])
+# TODO test decryption failure on corrupted file (change a byte, hmac and also payload).
 
 
 class TestJenc(TestJencUtil):
@@ -160,7 +161,6 @@ class TestJencWhiteBox(TestJencUtil):
             self.check_same_input_different_crypted_text(original_plaintext, password, version=version)
 
 
-
 class TestJencFiles(TestJencUtil):
     data_folder = os.path.join(
                     os.path.dirname(jenc.tests.__file__),
@@ -200,8 +200,6 @@ class TestJencFiles(TestJencUtil):
 
     def test_jpencconverter_v001(self):
         self.check_decrypt_file('test.v001_winnewlines.md.jenc', 'test.v001.md')  # NOTE jpencconverter trims off newline at EOF!
-
-# TODO test decryption failure on corrupted file (change a byte, hmac and also payload).
 
 
 def main():
