@@ -217,6 +217,7 @@ class TestJenc(TestJencUtil):
 class TestJencWhiteBox(TestJencUtil):
     """Look inside jenc for all versions and test them, hopefully catch any new versions that are not explictly (manually) added above
     Actual number of tests is = test method count * real number of versions
+    Alternative idea, (meta?) class that can be cloned for each version, so test count changes when number of versions changes.
     """
 
     def test_hello_world_enc_dec_default_all_versions(self):

@@ -122,6 +122,8 @@ jenc_version_details = {
 AUTH_TAG_LENGTH = 16  # i.e. 16 * 8 == 128-bits ; Markor / jpencconverter JavaPasswordbasedCryption.java : getCipher(); GCMParameterSpec spec = new GCMParameterSpec(16 * 8, nonce);
 
 
+DEFAULT_JENC_VERSION = 'V001'
+
 def jenc_version_check(jenc_version):
     if isinstance(jenc_version, bytes):
         jenc_version = jenc_version.decode('us-ascii')
@@ -201,7 +203,7 @@ def decrypt(password, encrypt_bytes, skip_hmac_check=False):
     return plaintext_bytes
 
 
-def encrypt(password, plaintext_bytes, jenc_version='V001'):
+def encrypt(password, plaintext_bytes, jenc_version=None):
     """Takes in:
         file-like object
         password string (not bytes)
@@ -216,6 +218,7 @@ def encrypt(password, plaintext_bytes, jenc_version='V001'):
         password = 'geheim'
         encrypted_bytes = jenc.encrypt(password, b"Hello World")
     """
+    jenc_version = jenc_version or DEFAULT_JENC_VERSION
     jenc_version_check(jenc_version)
     this_file_meta = jenc_version_details[jenc_version]
     nonce_bytes = get_random_bytes(this_file_meta['nonceLenth'])
@@ -243,7 +246,7 @@ def encrypt(password, plaintext_bytes, jenc_version='V001'):
     return jenc_version.encode('us-ascii') + nonce_bytes + salt_bytes + crypted_bytes + auth_tag
 
 
-def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version='V001'):
+def encrypt_file_handle(file_object, password, plaintext_bytes, jenc_version=None):
     """Takes in:
         file-like object
         password string (not bytes)
