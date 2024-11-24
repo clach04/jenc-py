@@ -21,13 +21,13 @@ import time
 
 # https://github.com/Legrandin/pycryptodome - PyCryptodome (safer/modern PyCrypto)
 # http://www.dlitz.net/software/pycrypto/ - PyCrypto - The Python Cryptography Toolkit
-import Crypto
+import Crypto  # known to work with pycryptodome-3.21.0 and Python 3.12
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Hash import SHA1
 from Crypto.Hash import SHA512
 from Crypto.Cipher import AES
 
-from Cryptodome.Random import get_random_bytes  # FIXME
+from Crypto.Random import get_random_bytes
 
 from ._version import __version__, __version_info__
 
