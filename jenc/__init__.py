@@ -100,7 +100,7 @@ jenc_version_details = {
     #   * https://github.com/opensource21/jpencconverter/blob/f65b630ea190e597ff138d9c1ffa9409bb4d56f7/src/main/java/de/stanetz/jpencconverter/cryption/JavaPasswordbasedCryption.java#L229
     # U001("PBKDF2WithHmacSHA1", 10000, 256, "AES", 64, "AES/GCM/NoPadding", 32);
     # V001("PBKDF2WithHmacSHA512", 10000, 256, "AES", 64, "AES/GCM/NoPadding", 32),
-    'U001': {  # NOTE Deprecated, i.e. not recommended
+    'U001': {  # NOTE Deprecated, i.e. not recommended (TODO U002?, see V002 below)
         'keyFactory': JENC_PBKDF2WithHmacSHA1,
         'keyIterationCount': 10000,  # this is probably too small/few in 2024
         'keyLength': 256,
@@ -118,11 +118,20 @@ jenc_version_details = {
         'cipher': JENC_AES_GCM_NoPadding,
         'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length  # in bytes
     },
+    'V002': {
+        'keyFactory': JENC_PBKDF2WithHmacSHA512,
+        'keyIterationCount': 210000,  # taken 2024-11-12 from https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2
+        'keyLength': 256,
+        'keyAlgorithm': 'AES',
+        'keySaltLength': 64,  # in bytes
+        'cipher': JENC_AES_GCM_NoPadding,
+        'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length  # in bytes
+    },
 }
 AUTH_TAG_LENGTH = 16  # i.e. 16 * 8 == 128-bits ; Markor / jpencconverter JavaPasswordbasedCryption.java : getCipher(); GCMParameterSpec spec = new GCMParameterSpec(16 * 8, nonce);
 
 
-DEFAULT_JENC_VERSION = 'V001'
+DEFAULT_JENC_VERSION = 'V002'
 
 def jenc_version_check(jenc_version):
     if isinstance(jenc_version, bytes):
