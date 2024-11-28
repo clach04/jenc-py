@@ -22,6 +22,7 @@ which uses the [jenc](https://github.com/opensource21/jpencconverter) format dec
     + [Example Encrypt / Decrypt in memory](#example-encrypt---decrypt-in-memory)
   * [jenc file format](#jenc-file-format)
     + [jenc file format - V001](#jenc-file-format---v001)
+    + [jenc file format - U001](#jenc-file-format---u001)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
@@ -140,3 +141,16 @@ From Python code:
     'keySaltLength': 64,  # in bytes
     'cipher': 'AES/GCM/NoPadding',
     'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length # in bytes
+
+### jenc file format - U001
+
+From Python code:
+
+    'U001': {  # NOTE Deprecated, i.e. not recommended
+        'keyFactory': JENC_PBKDF2WithHmacSHA1,
+        'keyIterationCount': 10000,  # this is probably too small/few in 2024
+        'keyLength': 256,
+        'keyAlgorithm': 'AES',
+        'keySaltLength': 64,  # in bytes
+        'cipher': JENC_AES_GCM_NoPadding,
+        'nonceLenth': 32,  # nonceLenth (sic.) == Nonce Length, i.e. IV length  # in bytes
