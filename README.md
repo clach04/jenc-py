@@ -123,8 +123,8 @@ TL;DR [AES-256-GCM (No Padding)](https://en.wikipedia.org/wiki/Galois/Counter_Mo
 File format:
 
   * 4 bytes - define the version.
-  * nonce bytes - bytes as nonce for cipher depends. The length depends on the version.
-  * salt bytes - bytes to salt the password. The length depends on the version.
+  * nonce bytes - bytes as nonce for cipher depends. The length depends on the version. 32-bytes for latest version.
+  * salt bytes - bytes to salt the password. The length depends on the version. 64-bytes for latest version.
   * content bytes - the encrypted content-bytes.
 
 From the original Java code for jpencconverter it appears that strings are converted to/from UTF-8 (i.e. passwords and plaintext).
